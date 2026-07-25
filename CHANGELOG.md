@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 * `filter_speckle` is now a finish-phase area filter (`Segmentation::filter_speckle`) rather than a clustering parameter: frontends keep every region (`good_min_area = 0`), so the speckle threshold can be retuned on a cached segmentation without re-clustering. Output on clean images is unchanged; images with sub-threshold noise are filtered downstream instead of during clustering.
+* Thread-like (sub-~2px-thick) region filtering is now a toggleable finish-phase step (`Segmentation::filter_thin`, `Config::filter_thin`, on by default). This restores the thin-strand rejection that visioncortex applied during clustering — which `good_min_area = 0` had disabled — but as a control that can be tuned on a cached segmentation. Exposed via the CLI (`--keep-thin`), Python (`filter_thin`), and Node (`filterThin`).
 * Binary thresholding methods: a tunable fixed threshold and Bradley–Roth adaptive thresholding (via visioncortex's summed-area table) for images with uneven lighting. Exposed on `Config` (`binary_threshold`, `binary_adaptive`, `binary_adaptive_window`, `binary_adaptive_t`), the CLI (`--threshold`, `--adaptive`, `--adaptive-window`, `--adaptive-t`), Python, and the Node package (`binaryThreshold`, `adaptive`, `adaptiveWindow`, `adaptiveT`).
 
 ## 1.0.0-alpha.1 - 2026-07-24

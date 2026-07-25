@@ -37,6 +37,8 @@ struct Options {
     adaptive_window: Option<u32>,
     /// Adaptive sensitivity: percent below the local mean (default 15).
     adaptive_t: Option<f64>,
+    /// Drop thread-like (sub-~2px-thick) regions (default true).
+    filter_thin: Option<bool>,
     /// One of "bw" | "poster" | "photo"; applied before the other fields.
     preset: Option<String>,
 }
@@ -125,6 +127,9 @@ fn config_from(options: JsValue) -> Result<Config, JsValue> {
     }
     if let Some(v) = opts.adaptive_t {
         config.binary_adaptive_t = v;
+    }
+    if let Some(v) = opts.filter_thin {
+        config.filter_thin = v;
     }
     Ok(config)
 }

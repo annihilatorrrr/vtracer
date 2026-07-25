@@ -23,6 +23,10 @@ pub struct Pipeline {
     /// phase — not the frontend — so it can be retuned on a cached
     /// [`Segmentation`] without re-clustering.
     pub speckle_area: usize,
+    /// Drop thread-like (thinner than ~2px) regions in the `finish` phase.
+    /// Reproduces visioncortex's clustering-time thin-strand rejection, but
+    /// toggleable on a cached [`Segmentation`].
+    pub filter_thin: bool,
 }
 
 impl Pipeline {
@@ -108,6 +112,9 @@ impl Pipeline {
     fn finish_ctx(&self, mut seg: Segmentation, ctx: &mut Ctx) -> Result<VectorDoc, Error> {
         // Speckle removal first, so noise doesn't feed color fitting/merging.
         seg.filter_speckle(self.speckle_area);
+        if self.filter_thin {
+            seg.filter_thin();
+        }
         ctx.check()?;
 
         for fitter in &self.color_fitters {

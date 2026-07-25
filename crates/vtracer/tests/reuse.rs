@@ -120,15 +120,18 @@ fn tune_speckle_on_cached_segmentation() {
     };
 
     // filter_speckle no longer affects the frontend, so these share a
-    // segmentation: cluster once, filter differently in finish.
+    // segmentation: cluster once, filter differently in finish. Disable the
+    // thin filter so speckle area is the only thing varying.
     let keep = Config {
         filter_speckle: 1, // area 1 → keep the 4px dots
+        filter_thin: false,
         ..Config::default()
     }
     .build()
     .unwrap();
     let drop = Config {
         filter_speckle: 3, // area 9 → drop the 4px dots
+        filter_thin: false,
         ..Config::default()
     }
     .build()
@@ -142,5 +145,59 @@ fn tune_speckle_on_cached_segmentation() {
         n_keep > n_drop,
         "raising filter_speckle should drop the tiny dots without re-clustering: \
          keep={n_keep}, drop={n_drop}"
+    );
+}
+
+/// The thin-strand filter is also a finish-phase toggle on a cached
+/// segmentation: a 2px-wide strand survives with `filter_thin = false` and is
+/// dropped with `filter_thin = true`, while the compact block always survives.
+#[test]
+fn tune_thin_filter_on_cached_segmentation() {
+    let (w, h) = (40usize, 40usize);
+    let mut pixels = Vec::with_capacity(w * h * 4);
+    for y in 0..h {
+        for x in 0..w {
+            let c = if (4..24).contains(&x) && (4..24).contains(&y) {
+                (40u8, 120, 220) // 20x20 compact block (not thin)
+            } else if (30..32).contains(&x) && (8..28).contains(&y) {
+                (220, 40, 40) // 2x20 thread-like strand
+            } else {
+                (245, 245, 245) // background
+            };
+            pixels.extend_from_slice(&[c.0, c.1, c.2, 255]);
+        }
+    }
+    let img = ColorImage {
+        pixels,
+        width: w,
+        height: h,
+    };
+
+    // Small speckle area so the 40px strand isn't removed by the area filter;
+    // only filter_thin varies between the two.
+    let base = Config {
+        filter_speckle: 1,
+        ..Config::default()
+    };
+    let keep_thin = Config {
+        filter_thin: false,
+        ..base.clone()
+    }
+    .build()
+    .unwrap();
+    let drop_thin = Config {
+        filter_thin: true,
+        ..base
+    }
+    .build()
+    .unwrap();
+
+    let seg = keep_thin.segment(&img).unwrap(); // cluster once
+    let n_keep = keep_thin.finish(&seg).unwrap().shapes.len();
+    let n_drop = drop_thin.finish(&seg).unwrap().shapes.len(); // same cached seg
+
+    assert!(
+        n_keep > n_drop,
+        "filter_thin should drop the thread-like strand: keep={n_keep}, drop={n_drop}"
     );
 }

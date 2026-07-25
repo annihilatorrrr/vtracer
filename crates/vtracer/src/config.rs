@@ -81,6 +81,9 @@ pub struct Config {
     pub binary_adaptive_window: u32,
     /// Adaptive sensitivity `t`: percent below the local mean (default 15).
     pub binary_adaptive_t: f64,
+    /// Drop thread-like (sub-~2px-thick) regions. On by default, matching the
+    /// pre-1.0 clustering-time behavior; applied in the finish phase.
+    pub filter_thin: bool,
 }
 
 impl Default for Config {
@@ -104,6 +107,7 @@ impl Default for Config {
             binary_adaptive: false,
             binary_adaptive_window: 0,
             binary_adaptive_t: 15.0,
+            filter_thin: true,
         }
     }
 }
@@ -248,6 +252,7 @@ impl Config {
             optimizers: self.optimizers(),
             writer: self.writer(),
             speckle_area: self.speckle_area(),
+            filter_thin: self.filter_thin,
         })
     }
 }

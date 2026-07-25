@@ -145,6 +145,7 @@ impl PyConfig {
         adaptive = false,
         adaptive_window = 0,
         adaptive_t = 15.0,
+        filter_thin = true,
     ))]
     #[allow(clippy::too_many_arguments)]
     fn new(
@@ -166,6 +167,7 @@ impl PyConfig {
         adaptive: bool,
         adaptive_window: u32,
         adaptive_t: f64,
+        filter_thin: bool,
     ) -> PyResult<Self> {
         let palette = match palette {
             Some(list) => list.iter().map(|s| parse_hex(s)).collect::<PyResult<_>>()?,
@@ -191,6 +193,7 @@ impl PyConfig {
                 binary_adaptive: adaptive,
                 binary_adaptive_window: adaptive_window,
                 binary_adaptive_t: adaptive_t,
+                filter_thin,
             },
         })
     }
@@ -379,6 +382,15 @@ impl PyConfig {
     #[setter]
     fn set_adaptive_t(&mut self, v: f64) {
         self.inner.binary_adaptive_t = v;
+    }
+
+    #[getter]
+    fn filter_thin(&self) -> bool {
+        self.inner.filter_thin
+    }
+    #[setter]
+    fn set_filter_thin(&mut self, v: bool) {
+        self.inner.filter_thin = v;
     }
 
     // --- conversion ---

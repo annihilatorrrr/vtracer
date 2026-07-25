@@ -27,6 +27,8 @@ export interface Options {
   adaptiveWindow?: number;
   /** Adaptive sensitivity: percent below the local mean (default 15). */
   adaptiveT?: number;
+  /** Drop thread-like (sub-~2px-thick) regions. Default true. */
+  filterThin?: boolean;
 }
 
 /** Vectorize an encoded image (PNG/JPEG/GIF/BMP) buffer to an SVG string. */

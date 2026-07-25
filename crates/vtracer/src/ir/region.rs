@@ -1,4 +1,4 @@
-use visioncortex::{BinaryImage, PointI32};
+use visioncortex::{BinaryImage, PointI32, Shape};
 
 use super::Paint;
 
@@ -38,6 +38,19 @@ impl RegionMask {
             }
         }
         count
+    }
+
+    /// Boundary length, using the same metric as visioncortex's clustering
+    /// (`Shape::image_boundary_list`) so the thread-like test matches.
+    pub fn perimeter(&self) -> usize {
+        Shape::image_boundary_list(&self.image).len()
+    }
+
+    /// Whether the region is "thread-like" (average thickness under ~2px), by
+    /// the visioncortex heuristic `perimeter >= area`. Small compact regions
+    /// also qualify, matching the original clustering-time filter.
+    pub fn is_thin(&self) -> bool {
+        self.perimeter() >= self.area()
     }
 
     /// Combine two masks into one covering the union of their bounding boxes.
@@ -109,5 +122,13 @@ impl Segmentation {
             return;
         }
         self.layers.retain(|layer| layer.mask.area() >= min_area);
+    }
+
+    /// Drop "thread-like" layers — regions thinner than ~2px on average (see
+    /// [`RegionMask::is_thin`]). This reproduces the thin-strand rejection that
+    /// visioncortex clustering applied when `good_min_area > 0`; it lives here,
+    /// in the finish phase, so it can be toggled on a cached segmentation.
+    pub fn filter_thin(&mut self) {
+        self.layers.retain(|layer| !layer.mask.is_thin());
     }
 }

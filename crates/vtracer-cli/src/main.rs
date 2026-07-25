@@ -106,6 +106,10 @@ struct Args {
     /// Adaptive sensitivity: percent below the local mean (default 15). Implies --adaptive.
     #[arg(long)]
     adaptive_t: Option<f64>,
+
+    /// Keep thread-like (sub-~2px-thick) regions instead of filtering them out.
+    #[arg(long)]
+    keep_thin: bool,
 }
 
 fn parse_segment_length(s: &str) -> Result<f64, String> {
@@ -198,6 +202,9 @@ fn build_config(args: &Args) -> Result<Config, String> {
     }
     if let Some(v) = args.adaptive_t {
         config.binary_adaptive_t = v;
+    }
+    if args.keep_thin {
+        config.filter_thin = false;
     }
 
     // Palette: inline flag wins over file; both parse to a color list.
