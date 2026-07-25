@@ -52,10 +52,12 @@ impl Default for Threshold {
 
 /// Binary (black/white) frontend: threshold the image then cluster the
 /// foreground. Every region is painted black.
+///
+/// Like the color frontend, this keeps every cluster; speckle filtering is a
+/// downstream, by-area step (see [`Segmentation::filter_speckle`]) so it can be
+/// retuned without re-thresholding.
 #[derive(Debug, Clone)]
 pub struct BinaryFrontend {
-    /// Discard clusters smaller than this many pixels.
-    pub filter_speckle_area: usize,
     /// How foreground pixels are selected.
     pub threshold: Threshold,
     /// Whether to connect clusters diagonally.
@@ -65,7 +67,6 @@ pub struct BinaryFrontend {
 impl Default for BinaryFrontend {
     fn default() -> Self {
         Self {
-            filter_speckle_area: 16,
             threshold: Threshold::default(),
             diagonal: false,
         }
@@ -137,19 +138,17 @@ impl Frontend for BinaryFrontend {
         let black = Color::new(0, 0, 0);
         for i in 0..clusters.len() {
             let cluster = clusters.get_cluster(i);
-            if cluster.size() >= self.filter_speckle_area {
-                let mask = RegionMask::new(
-                    cluster.to_binary_image(),
-                    PointI32 {
-                        x: cluster.rect.left,
-                        y: cluster.rect.top,
-                    },
-                );
-                seg.layers.push(Layer {
-                    paint: Paint::Solid(black),
-                    mask,
-                });
-            }
+            let mask = RegionMask::new(
+                cluster.to_binary_image(),
+                PointI32 {
+                    x: cluster.rect.left,
+                    y: cluster.rect.top,
+                },
+            );
+            seg.layers.push(Layer {
+                paint: Paint::Solid(black),
+                mask,
+            });
         }
 
         Ok(seg)

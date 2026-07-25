@@ -14,10 +14,13 @@ use super::keying::{apply_key, find_unused_color, should_key_image};
 use super::Frontend;
 
 /// Hierarchical color-clustering frontend — the classic VTracer color path.
+///
+/// Speckle filtering is intentionally *not* done here: the runner keeps every
+/// region (`good_min_area = 0`) so the resulting [`Segmentation`] can be cached
+/// and re-filtered downstream by area (see [`Segmentation::filter_speckle`]),
+/// letting the speckle threshold be tuned without re-clustering.
 #[derive(Debug, Clone)]
 pub struct ColorClusterFrontend {
-    /// Discard clusters smaller than this many pixels.
-    pub filter_speckle_area: usize,
     /// Bits of color precision dropped when comparing pixels (0 = full 8-bit).
     pub color_precision_loss: i32,
     /// Color difference between hierarchical gradient layers.
@@ -27,7 +30,6 @@ pub struct ColorClusterFrontend {
 impl Default for ColorClusterFrontend {
     fn default() -> Self {
         Self {
-            filter_speckle_area: 16,
             color_precision_loss: 2,
             layer_difference: 16,
         }
@@ -62,7 +64,8 @@ impl ColorClusterFrontend {
             diagonal: self.layer_difference == 0,
             hierarchical: HIERARCHICAL_MAX,
             batch_size: 25600,
-            good_min_area: self.filter_speckle_area,
+            // Keep every region; speckle filtering happens downstream by area.
+            good_min_area: 0,
             good_max_area: width * height,
             is_same_color_a: self.color_precision_loss,
             is_same_color_b: 1,

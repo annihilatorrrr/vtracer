@@ -40,7 +40,6 @@ fn fixed_threshold_is_tunable() {
     });
 
     let front = |v: u8| BinaryFrontend {
-        filter_speckle_area: 1,
         threshold: Threshold::Fixed(v),
         diagonal: false,
     };
@@ -80,7 +79,6 @@ fn adaptive_beats_fixed_under_uneven_lighting() {
     });
 
     let base = BinaryFrontend {
-        filter_speckle_area: 4,
         threshold: Threshold::Fixed(128),
         diagonal: false,
     };
@@ -88,7 +86,9 @@ fn adaptive_beats_fixed_under_uneven_lighting() {
     // A global cutoff can't isolate both marks: 128 catches the dark-side mark
     // but floods the whole dark half of the ramp, and misses the bright-side
     // mark (~136) entirely — so fixed has no region on the bright half.
-    let fixed_seg = base.segment(&img).unwrap();
+    // (Speckle filtering is now a downstream step; apply it explicitly.)
+    let mut fixed_seg = base.segment(&img).unwrap();
+    fixed_seg.filter_speckle(4);
     let fixed_area: usize = fixed_seg.layers.iter().map(|l| l.mask.area()).sum();
     let mid = (w as i32) / 2;
     let fixed_right = fixed_seg.layers.iter().any(|l| l.mask.offset.x >= mid);
@@ -101,7 +101,8 @@ fn adaptive_beats_fixed_under_uneven_lighting() {
         },
         ..base.clone()
     };
-    let adaptive_seg = adaptive.segment(&img).unwrap();
+    let mut adaptive_seg = adaptive.segment(&img).unwrap();
+    adaptive_seg.filter_speckle(4);
     let adaptive_area: usize = adaptive_seg.layers.iter().map(|l| l.mask.area()).sum();
     let adaptive_left = adaptive_seg.layers.iter().any(|l| l.mask.offset.x < mid);
     let adaptive_right = adaptive_seg.layers.iter().any(|l| l.mask.offset.x >= mid);

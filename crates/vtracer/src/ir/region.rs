@@ -97,4 +97,17 @@ impl Segmentation {
             layers: Vec::new(),
         }
     }
+
+    /// Drop layers whose covered area is below `min_area` pixels (speckle
+    /// removal). A no-op when `min_area == 0`.
+    ///
+    /// This runs downstream of the frontend, so the speckle threshold can be
+    /// retuned on a cached segmentation without re-clustering. Dropping a layer
+    /// exposes whatever is painted beneath it in the stack.
+    pub fn filter_speckle(&mut self, min_area: usize) {
+        if min_area == 0 {
+            return;
+        }
+        self.layers.retain(|layer| layer.mask.area() >= min_area);
+    }
 }

@@ -91,3 +91,56 @@ fn tune_curve_fitting_on_cached_segmentation() {
         "pixel and spline fitting should produce different paths"
     );
 }
+
+/// `filter_speckle` is now a finish-phase area filter, so tuning it reuses the
+/// cached segmentation — no re-clustering. A higher threshold drops the tiny
+/// dots; the low threshold keeps them.
+#[test]
+fn tune_speckle_on_cached_segmentation() {
+    // White background, a 10x10 block, and four 2x2 dots (4px each).
+    let (w, h) = (32usize, 32usize);
+    let dots = [(4usize, 4usize), (4, 26), (26, 4), (26, 26)];
+    let mut pixels = Vec::with_capacity(w * h * 4);
+    for y in 0..h {
+        for x in 0..w {
+            let c = if (12..22).contains(&x) && (12..22).contains(&y) {
+                (220u8, 40, 40) // center block
+            } else if dots.iter().any(|&(dx, dy)| x >= dx && x < dx + 2 && y >= dy && y < dy + 2) {
+                (10, 10, 10) // dots
+            } else {
+                (245, 245, 245) // background
+            };
+            pixels.extend_from_slice(&[c.0, c.1, c.2, 255]);
+        }
+    }
+    let img = ColorImage {
+        pixels,
+        width: w,
+        height: h,
+    };
+
+    // filter_speckle no longer affects the frontend, so these share a
+    // segmentation: cluster once, filter differently in finish.
+    let keep = Config {
+        filter_speckle: 1, // area 1 → keep the 4px dots
+        ..Config::default()
+    }
+    .build()
+    .unwrap();
+    let drop = Config {
+        filter_speckle: 3, // area 9 → drop the 4px dots
+        ..Config::default()
+    }
+    .build()
+    .unwrap();
+
+    let seg = keep.segment(&img).unwrap(); // the expensive step, done once
+    let n_keep = keep.finish(&seg).unwrap().shapes.len();
+    let n_drop = drop.finish(&seg).unwrap().shapes.len(); // same cached seg
+
+    assert!(
+        n_keep > n_drop,
+        "raising filter_speckle should drop the tiny dots without re-clustering: \
+         keep={n_keep}, drop={n_drop}"
+    );
+}

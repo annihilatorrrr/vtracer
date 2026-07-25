@@ -19,6 +19,10 @@ pub struct Pipeline {
     pub compositing: Compositing,
     pub optimizers: Vec<Box<dyn OptimizerPass>>,
     pub writer: SvgWriter,
+    /// Speckle filter, in pixels of area (0 = off). Applied in the `finish`
+    /// phase — not the frontend — so it can be retuned on a cached
+    /// [`Segmentation`] without re-clustering.
+    pub speckle_area: usize,
 }
 
 impl Pipeline {
@@ -53,11 +57,12 @@ impl Pipeline {
     /// and return a reusable [`Segmentation`].
     ///
     /// Cache the result and feed it to [`finish`](Pipeline::finish) to
-    /// re-render with different color-fitting, curve-fitting, or optimization
-    /// parameters *without repaying the clustering cost* — the core of an
-    /// interactive tuning loop. Only re-run `segment` when a parameter that
-    /// affects clustering itself changes (color precision, layer difference,
-    /// speckle filter, binary threshold, the frontend choice).
+    /// re-render with different speckle, color-fitting, curve-fitting, or
+    /// optimization parameters *without repaying the clustering cost* — the
+    /// core of an interactive tuning loop. (`filter_speckle` is a finish-phase
+    /// area filter, so it too is tunable on a cached segmentation.) Only re-run
+    /// `segment` when a parameter that affects clustering itself changes: color
+    /// precision, layer difference, binary threshold, or the frontend choice.
     pub fn segment(&self, img: &ColorImage) -> Result<Segmentation, Error> {
         self.segment_with_progress(img, &CancelToken::new(), &mut |_| {})
     }
@@ -101,6 +106,10 @@ impl Pipeline {
     /// segmentation. Shared by the one-shot and two-phase entry points; takes
     /// ownership so the one-shot path avoids a clone.
     fn finish_ctx(&self, mut seg: Segmentation, ctx: &mut Ctx) -> Result<VectorDoc, Error> {
+        // Speckle removal first, so noise doesn't feed color fitting/merging.
+        seg.filter_speckle(self.speckle_area);
+        ctx.check()?;
+
         for fitter in &self.color_fitters {
             fitter.fit(&mut seg);
             ctx.check()?;
