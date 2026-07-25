@@ -49,9 +49,7 @@ Technical descriptions of the [tracing algorithm](https://www.visioncortex.org/v
 
 ## Desktop App (coming soon)
 
-![screenshot](docs/images/screenshot-01.png)
-
-![screenshot](docs/images/screenshot-02.png)
+![screenshot](docs/images/desktop-app.png)
 
 ## Cmd App
 
@@ -90,6 +88,11 @@ Options:
       --palette-file <PALETTE_FILE>          Fixed palette from a file (hex colors, comma/newline separated)
       --max-colors <MAX_COLORS>              Auto-quantize to at most N colors
       --optimize <OPTIMIZE>                  Output optimization: 0 = off, 1 = quantize+simplify, 2 = + shorthands
+      --threshold <THRESHOLD>                Binary mode: fixed threshold 0..=255 (foreground below it)
+      --adaptive                             Binary mode: Bradley–Roth adaptive threshold (uneven lighting)
+      --adaptive-window <ADAPTIVE_WINDOW>    Adaptive window size in px (0 = auto); implies --adaptive
+      --adaptive-t <ADAPTIVE_T>              Adaptive sensitivity: % below local mean (default 15)
+      --keep-thin                            Keep thread-like (<~2px) regions instead of filtering them out
   -h, --help                                 Print help
   -V, --version                              Print version
 ```
@@ -102,7 +105,14 @@ Options:
 - **`--palette` / `--palette-file`** — snap colors to a fixed palette
   (nearest in OKLab); **`--max-colors`** auto-quantizes the palette.
 - **`--optimize`** — output size passes (coordinate quantization, redundant-
-  point removal, relative/shorthand path encoding).
+  point removal, relative/shorthand path encoding). Note: coordinate
+  precision is set separately by `--path-precision`, the bigger size lever.
+- **Binary thresholding** — a tunable fixed cutoff (`--threshold`) or
+  **Bradley–Roth adaptive** thresholding (`--adaptive`, with `--adaptive-window`
+  / `--adaptive-t`) for scans with uneven lighting.
+- **`--keep-thin`** — retain thread-like (sub-~2px) regions; by default they
+  are filtered out (speckle and thin-strand filtering both run after
+  clustering, so they can be retuned without re-clustering).
 
 ## Downloads
 
@@ -124,6 +134,9 @@ cargo install vtracer-cli
 
 # black & white line art
 ./vtracer input.jpg output.svg --preset bw
+
+# scanned/photographed line art with uneven lighting
+./vtracer scan.jpg output.svg --colormode bw --adaptive
 
 # seam-free mosaic (gapless tessellation)
 ./vtracer input.jpg output.svg --hierarchical cutout
@@ -160,6 +173,10 @@ cfg = vtracer.Config(mode="polygon", hierarchical="cutout")
 cfg.palette = ["#1b1b1b", "#e0c088", "#5a7d3c"]
 svg = cfg.convert_bytes(data)
 vtracer.Config.poster().convert_file("photo.jpg", "poster.svg")
+
+# binary with adaptive (Bradley–Roth) thresholding, keeping thin strokes
+bw = vtracer.Config(color_mode="bw", adaptive=True, filter_thin=False)
+svg = bw.convert_file("scan.jpg", "scan.svg")
 ```
 
 See [`crates/vtracer-py`](crates/vtracer-py/README.md) for the full API.
@@ -178,6 +195,9 @@ const vtracer = require('@visioncortex/vtracer');
 await vtracer.convertFile('in.png', 'out.svg', { mode: 'polygon' });
 const svg = vtracer.convertBuffer(buffer, { preset: 'poster' });
 const svg2 = vtracer.convertPixels(rgba, width, height, { colorMode: 'bw' });
+
+// binary with adaptive thresholding; keep thin strokes
+const bw = vtracer.convertBuffer(buffer, { colorMode: 'bw', adaptive: true, filterThin: false });
 ```
 
 ## Citations
