@@ -2,6 +2,23 @@
 
 All notable changes to the VTracer desktop app will be documented in this file.
 
+## 1.0.0-alpha.4 - Build 133 - 2026-09-07
+
+### Added
+
+* Gen AI preview. Supports 2 Stable Diffusion model lines, SD Turbo and SDXL Turbo. Requires Vulkan support on Windows. Requires an active VT2 license.
+* The app now offer VTracer 2 engine update.
+
+### Changed
+
+* VTracer 2 composites with Stacked rather than Cutout by default.
+* An expired VTracer 2 trial no longer locks the images you have already traced. They can still be reopened and exported, and only new tracing needs an active licence.
+
+### Fixed
+
+* Retrying VTracer 2 setup after an interrupted install no longer asks for a second device seat for the same machine.
+* A trace with its background removed now sits on a light chequerboard in dark mode.
+
 ## 1.0.0-alpha.4 - Build 116 - 2026-08-29
 
 ### Added
