@@ -2,7 +2,12 @@
 
 All notable changes to the VTracer 2 engine will be documented in this file.
 
-## 1.0.0-alpha.4 - Build 116 - 2026-08-29
+## 2.0.4 - 2026-09-07
+
+* Engine improvement. Traces small circles better
+* Gradient step now allow app to pick optimal value
+
+## 2.0.3 - 2026-08-29
 
 Initial release. Supported systems:
 
